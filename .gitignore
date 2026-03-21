@@ -1,0 +1,12 @@
+# Python
+venv/
+__pycache__/
+*.pyc
+.env
+backend/models/ # In case you download large .gguf files
+.venv
+
+# Node / React
+node_modules/
+dist/
+.DS_Store
