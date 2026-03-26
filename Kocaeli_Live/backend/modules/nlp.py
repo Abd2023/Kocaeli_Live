@@ -5,6 +5,8 @@ import logging
 import asyncio
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
+from transformers import pipeline
+import torch
 
 # Fallbacks just in case the SLM is unavailable
 CATEGORIES = {
@@ -24,72 +26,103 @@ DISTRICTS = [
 def fallback_classify(text, title=""):
     combined = (title + " " + text).lower()
     scores = {cat: 0 for cat in CATEGORIES}
+    
+    # Negative Penalization
+    NEGATIVE_KEYWORDS = ["hakem", "milletvekili", "kredi", "spor", "maç", "siyaset", "başkan", "transfer", "konut", "toki", "borsa"]
+    penalty = 0
+    for kw in NEGATIVE_KEYWORDS:
+        if kw in combined:
+            penalty += 2
+            
     for cat, keywords in CATEGORIES.items():
         for kw in keywords:
             if kw in combined: scores[cat] += 1
+            
+    for cat in scores:
+        scores[cat] -= penalty
+        
     best_cat = max(scores, key=scores.get)
-    return best_cat if scores[best_cat] > 0 else "Culture"
+    if scores[best_cat] >= 1:
+        return best_cat
+    else:
+        return "Diğer"
 
 def fallback_location(text, title=""):
     combined = (title + " " + text).lower()
     for d in DISTRICTS:
         if d.lower() in combined.replace('i̇', 'i').replace('ı', 'I'):
             return d
-    return "Kocaeli (Merkez)"
+    return None
 
-# ---------- OFFLINE SLM INTEGRATION ----------- #
+# ---------- ZERO-SHOT CLASSIFIER INTEGRATION ----------- #
 
-SLM_MODEL = None
+ZeroShotClassifier = None
 
-def init_slm():
-    global SLM_MODEL
-    if SLM_MODEL is not None:
+def init_zeroshot():
+    global ZeroShotClassifier
+    if ZeroShotClassifier is not None:
         return True
     
     try:
-        from llama_cpp import Llama
-        MODEL_PATH = os.path.join(os.path.dirname(__file__), "..", "models", "qwen2.5-0.5b-instruct-q4_k_m.gguf")
-        
-        if os.path.exists(MODEL_PATH):
-            print(f"Loading Offline AI from {MODEL_PATH}...")
-            # n_ctx=1024 to save RAM, n_gpu_layers=0 for 100% pure CPU execution
-            SLM_MODEL = Llama(model_path=MODEL_PATH, n_ctx=1024, verbose=False, n_gpu_layers=0)
-            return True
+        print("Loading Zero-Shot Classifier (MoritzLaurer/mDeBERTa-v3-base-mnli-xnli)...")
+        device = 0 if torch.cuda.is_available() else -1
+        if device == 0:
+            print("=> CUDA detected! Loading NLP Model onto GPU (RTX 4060)...")
         else:
-            return False
+            print("=> CUDA not detected! Loading NLP Model onto CPU...")
+            
+        ZeroShotClassifier = pipeline("zero-shot-classification", model="MoritzLaurer/mDeBERTa-v3-base-mnli-xnli", device=device)
+        return True
     except ImportError:
+        print("transformers library missing.")
+        return False
+    except Exception as e:
+        print(f"Failed to load classifier: {e}")
         return False
 
-async def fetch_llm_classification(title, text):
-    if not init_slm():
-        return None, None
+async def classify_news_zeroshot_async(text: str):
+    if not init_zeroshot():
+        return "DISCARD"
         
-    prompt = f"""<|im_start|>system
-You are a data extractor. Output ONLY valid JSON containing "category" and "location". No other text.
-Categories: "Traffic", "Fire", "Electricity", "Theft", "Culture".
-Location: A Kocaeli district (e.g., "İzmit", "Gebze") or "Kocaeli (Merkez)".<|im_end|>
-<|im_start|>user
-Title: {title}
-Content: {text[:600]}<|im_end|>
-<|im_start|>assistant
-{{"""
+    candidate_labels = [
+        "Trafik Kazası", 
+        "Yangın", 
+        "Elektrik Kesintisi", 
+        "Hırsızlık", 
+        "Kültürel Etkinlik", 
+        "Siyaset, Spor veya Diğer İlgisiz Haberler"
+    ]
+    hypothesis_template = "Bu metin {} hakkındadır."
+    
+    loop = asyncio.get_event_loop()
+    
+    # We truncate text to roughly 1500 chars to avoid memory issues and speed up classification
+    truncated_text = text[:1500]
+    
+    def run_pipeline():
+        return ZeroShotClassifier(truncated_text, candidate_labels, hypothesis_template=hypothesis_template)
+        
     try:
-        loop = asyncio.get_event_loop()
-        output = await loop.run_in_executor(None, lambda: SLM_MODEL(
-            prompt,
-            max_tokens=60,
-            stop=["<|im_end|>", "}"],
-            temperature=0.0
-        ))
+        result = await loop.run_in_executor(None, run_pipeline)
         
-        res_text = "{" + output['choices'][0]['text'].strip()
-        if not res_text.endswith("}"):
-            res_text += "}"
+        top_category = result['labels'][0]
+        top_score = result['scores'][0]
+        
+        if top_category == "Siyaset, Spor veya Diğer İlgisiz Haberler" or top_score < 0.40:
+            return "DISCARD"
             
-        res = json.loads(res_text)
-        return res.get("category"), res.get("location")
-    except Exception:
-        return None, None
+        category_map = {
+            "Trafik Kazası": "Traffic",
+            "Yangın": "Fire",
+            "Elektrik Kesintisi": "Electricity",
+            "Hırsızlık": "Theft",
+            "Kültürel Etkinlik": "Culture"
+        }
+        
+        return category_map.get(top_category, "DISCARD")
+    except Exception as e:
+        print(f"Zero-Shot classification failed: {e}")
+        return "DISCARD"
 
 async def process_nlp_for_articles(articles, existing_db_articles=None):
     if existing_db_articles is None:
@@ -136,11 +169,20 @@ async def process_nlp_for_articles(articles, existing_db_articles=None):
                 processed_items.append(item)
                 continue
 
-        # Step 2: Push totally unique articles strictly through the LLM
-        cat, location = await fetch_llm_classification(item["title"], item["raw_content"])
+        # Step 2: Push totally unique articles strictly through the Zero-Shot Classifier
+        cat = await classify_news_zeroshot_async(item["title"] + " " + item["raw_content"])
         
-        item["category"] = cat if cat else fallback_classify(item["raw_content"], item["title"])
-        item["location"] = location if location else fallback_location(item["raw_content"])
+        item["category"] = cat if cat != "DISCARD" else fallback_classify(item["raw_content"], item["title"])
+        
+        if item["category"] == "Diğer" or item["category"] == "DISCARD":
+            print(f"[NLP] REJECTED (İlgisiz): '{item['title']}' is classified as Diğer/Discard.")
+            continue
+            
+        #loc = fallback_location(item["raw_content"], item["title"])
+        #if loc is None:
+        #    print(f"[NLP] REJECTED (Konum Yok): '{item['title']}' is discarded due to no location.")
+        #    continue
+        item["location"] = "Kocaeli (Merkez)"
 
         # Important: Setup the multi-source string array capability for the UI design
         item["sources"] = [item["source"]]
