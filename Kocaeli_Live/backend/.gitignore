@@ -1,0 +1,25 @@
+# Environment Variables
+.env
+
+# Python Caches
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Lock files & temp outputs
+*.lock
+*.txt
+!requirements.txt
+
+# Test / Scratchpad Scripts
+test_*.py
+check_sim.py
+verify_dupes.py
+read_pdf_script.py
+
+# Large ML Models
+*.gguf
+*.bin
+*.pth
+*.pt

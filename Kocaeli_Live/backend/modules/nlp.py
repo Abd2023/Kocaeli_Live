@@ -47,12 +47,12 @@ def fallback_classify(text, title=""):
     else:
         return "Diğer"
 
-def fallback_location(text, title=""):
-    combined = (title + " " + text).lower()
-    for d in DISTRICTS:
-        if d.lower() in combined.replace('i̇', 'i').replace('ı', 'I'):
-            return d
-    return None
+#def fallback_location(text, title=""):
+#    combined = (title + " " + text).lower()
+#    for d in DISTRICTS:
+#        if d.lower() in combined.replace('i̇', 'i').replace('ı', 'I'):
+#            return d
+#    return None
 
 # ---------- ZERO-SHOT CLASSIFIER INTEGRATION ----------- #
 
@@ -158,8 +158,7 @@ async def process_nlp_for_articles(articles, existing_db_articles=None):
                     max_sim = sim
                     matched_original = accepted
                     
-            # TEMPORARY FIX: Lowered specifically to 0.15 just so you can test the UI Modal right now!
-            # You should change this back to 0.90 before submitting the project!
+            # Proje Dökümanı Kuralı: %90 ve üzeri benzerlikler aynı haber (kopya) kabul edilir
             if max_sim >= 0.90:
                 print(f"[NLP] DUP REJECTED ({int(max_sim*100)}%): '{item['title']}' matches original.")
                 item["is_duplicate"] = True
@@ -182,7 +181,7 @@ async def process_nlp_for_articles(articles, existing_db_articles=None):
         #if loc is None:
         #    print(f"[NLP] REJECTED (Konum Yok): '{item['title']}' is discarded due to no location.")
         #    continue
-        item["location"] = "Kocaeli (Merkez)"
+        item["location"] = loc
 
         # Important: Setup the multi-source string array capability for the UI design
         item["sources"] = [item["source"]]

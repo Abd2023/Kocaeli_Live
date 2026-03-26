@@ -11,7 +11,7 @@ async def get_coordinates(location_name):
         query = "İzmit, Kocaeli, Turkey"
     else:
         query = f"{location_name}, Kocaeli, Turkey"
-        
+    #Aynı konum için gereksiz tekrar API çağrısı yapılmamalıdır.    
     cache_col = db["geocode_cache"]
     
     # 1. Check MongoDB Cache first to save quota!

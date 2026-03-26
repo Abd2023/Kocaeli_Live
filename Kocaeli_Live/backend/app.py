@@ -85,6 +85,9 @@ async def sync_news():
                 continue
                 
             lat, lng = await get_coordinates(item["location"])
+            if lat is None or lng is None:
+                continue
+                
             item["lat"] = lat
             item["lng"] = lng
             
