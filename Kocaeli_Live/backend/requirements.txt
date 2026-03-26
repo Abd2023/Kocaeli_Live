@@ -2,4 +2,9 @@ quart
 quart-cors
 motor
 python-dotenv
-crawl4ai
+cloudscraper
+beautifulsoup4
+transformers
+torch
+scikit-learn
+seleniumbase
