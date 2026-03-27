@@ -11,11 +11,21 @@ import cloudscraper
 # Use robust cloudscraper to bypass Cloudflare/403s instead of raw aiohttp
 scraper_client = cloudscraper.create_scraper()
 
+
+# Sınırlandırıcı (Semaphore) - Aynı anda en fazla 3 istek atılmasını sağlar
+# fetch_semaphore = asyncio.Semaphore(3)
+
 async def fetch_html(session, url):
+    #  Ağ trafiğini kilitleyerek sitelere DDoS atmayı engelle
+    # async with fetch_semaphore:
     try:
         def req():
             headers = cb.get_bypass_headers(url)
             return scraper_client.get(url, headers=headers, timeout=15)
+        
+        # İnsan davranışını taklit etmek için 1 saniye beklet
+        # await asyncio.sleep(1) 
+        
         response = await asyncio.to_thread(req)
         if response.status_code == 200:
             return response.text
