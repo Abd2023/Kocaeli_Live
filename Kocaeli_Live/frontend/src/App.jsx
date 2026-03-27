@@ -26,7 +26,7 @@ function App() {
 
   // Fetch all saved articles
   const fetchNews = () => {
-    fetch('http://localhost:5000/api/news')
+    fetch('http://localhost:5000/api/news', { cache: 'no-store' })
       .then(res => res.json())
       .then(data => {
         if (data.status === 'success') {
