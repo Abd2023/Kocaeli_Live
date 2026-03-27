@@ -47,12 +47,12 @@ def fallback_classify(text, title=""):
     else:
         return "Diğer"
 
-#def fallback_location(text, title=""):
-#    combined = (title + " " + text).lower()
-#    for d in DISTRICTS:
-#        if d.lower() in combined.replace('i̇', 'i').replace('ı', 'I'):
-#            return d
-#    return None
+def fallback_location(text, title=""):
+    combined = (title + " " + text).lower()
+    for d in DISTRICTS:
+        if d.lower() in combined.replace('i̇', 'i').replace('ı', 'I'):
+            return d
+    return None
 
 # ---------- ZERO-SHOT CLASSIFIER INTEGRATION ----------- #
 
@@ -177,10 +177,10 @@ async def process_nlp_for_articles(articles, existing_db_articles=None):
             print(f"[NLP] REJECTED (İlgisiz): '{item['title']}' is classified as Diğer/Discard.")
             continue
             
-        #loc = fallback_location(item["raw_content"], item["title"])
-        #if loc is None:
-        #    print(f"[NLP] REJECTED (Konum Yok): '{item['title']}' is discarded due to no location.")
-        #    continue
+        loc = fallback_location(item["raw_content"], item["title"])
+        if loc is None:
+            print(f"[NLP] REJECTED (Konum Yok): '{item['title']}' is discarded due to no location.")
+            continue
         item["location"] = loc
 
         # Important: Setup the multi-source string array capability for the UI design

@@ -58,7 +58,11 @@ async def sync_news():
         news_col = db["articles"]
         existing_articles = await news_col.find().to_list(length=500)
         
-        processed = await process_nlp_for_articles(articles, existing_db_articles=existing_articles)
+        # Filter out links that already exist in the database BEFORE running expensive NLP
+        existing_links = {a["link"] for a in existing_articles}
+        new_articles = [a for a in articles if a["link"] not in existing_links]
+        
+        processed = await process_nlp_for_articles(new_articles, existing_db_articles=existing_articles)
         
         saved_count = 0
         merged_count = 0

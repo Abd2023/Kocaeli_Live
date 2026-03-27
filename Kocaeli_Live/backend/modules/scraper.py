@@ -25,7 +25,8 @@ async def fetch_html(session, url):
 
 def extract_article_links(html, base_url, current_url):
     soup = BeautifulSoup(html, 'html.parser')
-    links = set()
+    seen_links = set()
+    ordered_links = []
     blacklist = ['/spor', '/siyaset', '/ekonomi', '/magazin', '/yazarlar', '/dunya', 'haberleri', 'kategori', '/galeri', '/video', '/kurumsal', '/iletisim', '/kunye']
     
     base_domain = urlparse(base_url).netloc.replace('www.', '')
@@ -55,8 +56,10 @@ def extract_article_links(html, base_url, current_url):
             # Most article slugs have multiple words separated by dashes.
             if parsed.path.count('-') >= 3 or (parsed.path.count('-') >= 1 and any(char.isdigit() for char in parsed.path)):
                 if not href.lower().endswith(('.jpg', '.png', '.jpeg', '.pdf', '.gif', '.mp4', '.svg', '.webp')):
-                    links.add(href)
-    return list(links)[:30] # Grab more links to guarantee we find at least 10 recent ones
+                    if href not in seen_links:
+                        seen_links.add(href)
+                        ordered_links.append(href)
+    return ordered_links[:30] # Grab more links to guarantee we find at least 10 recent ones
 
 def extract_text(html):
     soup = BeautifulSoup(html, 'html.parser')
