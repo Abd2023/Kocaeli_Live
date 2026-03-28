@@ -26,8 +26,10 @@ const Sidebar = ({
   setSelectedCategory,
   selectedDistrict,
   setSelectedDistrict,
-  dateRange,
-  setDateRange,
+  dateStart,
+  setDateStart,
+  dateEnd,
+  setDateEnd,
   applyFilters,
   handleSync,
   isSyncing,
@@ -47,16 +49,30 @@ const Sidebar = ({
 
       <div className="flex-1 overflow-y-auto px-6 pb-6 pt-4 block-scrollbar">
         
-        {/* Date Filter */}
+        {/* Date Range Filter */}
         <div className="mb-5">
           <label className="text-[10px] font-bold text-gray-400 tracking-widest uppercase mb-2 block">Tarih Aralığı</label>
-          <div className="relative">
-            <input 
-              type="date" 
-              value={dateRange}
-              onChange={(e) => setDateRange(e.target.value)}
-              className="w-full bg-white border border-gray-200 text-gray-700 text-sm font-medium rounded-full py-2.5 px-4 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 appearance-none"
-            />
+          <div className="flex gap-2">
+            <div className="flex-1">
+              <label className="text-[9px] font-bold text-gray-400 uppercase mb-1 block">Başlangıç</label>
+              <input 
+                type="date"
+                value={dateStart}
+                max={dateEnd || undefined}
+                onChange={(e) => setDateStart(e.target.value)}
+                className="w-full bg-white border border-gray-200 text-gray-700 text-xs font-medium rounded-2xl py-2 px-3 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 appearance-none"
+              />
+            </div>
+            <div className="flex-1">
+              <label className="text-[9px] font-bold text-gray-400 uppercase mb-1 block">Bitiş</label>
+              <input 
+                type="date"
+                value={dateEnd}
+                min={dateStart || undefined}
+                onChange={(e) => setDateEnd(e.target.value)}
+                className="w-full bg-white border border-gray-200 text-gray-700 text-xs font-medium rounded-2xl py-2 px-3 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 appearance-none"
+              />
+            </div>
           </div>
         </div>
 

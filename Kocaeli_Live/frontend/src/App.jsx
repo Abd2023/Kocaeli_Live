@@ -17,12 +17,14 @@ function App() {
   // Pending Sidebar States (Wait for Apply/Filtrele button)
   const [tempCategory, setTempCategory] = useState("Tümü");
   const [tempDistrict, setTempDistrict] = useState("Tüm Kocaeli");
-  const [tempDate, setTempDate] = useState("");
+  const [tempDateStart, setTempDateStart] = useState("");
+  const [tempDateEnd, setTempDateEnd] = useState("");
 
   // Active Applied Filters (Drives the Map and Feed)
   const [activeCategory, setActiveCategory] = useState("Tümü");
   const [activeDistrict, setActiveDistrict] = useState("Tüm Kocaeli");
-  const [activeDate, setActiveDate] = useState("");
+  const [activeDateStart, setActiveDateStart] = useState("");
+  const [activeDateEnd, setActiveDateEnd] = useState("");
 
   // Fetch all saved articles
   const fetchNews = () => {
@@ -60,7 +62,8 @@ function App() {
   const applyFilters = () => {
     setActiveCategory(tempCategory);
     setActiveDistrict(tempDistrict);
-    setActiveDate(tempDate);
+    setActiveDateStart(tempDateStart);
+    setActiveDateEnd(tempDateEnd);
   };
 
   // Compute Filtered View dynamically based on active filters
@@ -72,11 +75,17 @@ function App() {
     const formattedSel = activeDistrict.trim().toLowerCase();
     const matchDistrict = activeDistrict === "Tüm Kocaeli" || formattedCat.includes(formattedSel) || formattedSel.includes(formattedCat);
     
-    // Basic date parsing filtering
+    // Date range filtering
     let matchDate = true;
-    if (activeDate && article.date) {
+    if ((activeDateStart || activeDateEnd) && article.date) {
       const artDate = new Date(article.date).toISOString().split('T')[0];
-      matchDate = artDate === activeDate;
+      if (activeDateStart && activeDateEnd) {
+        matchDate = artDate >= activeDateStart && artDate <= activeDateEnd;
+      } else if (activeDateStart) {
+        matchDate = artDate >= activeDateStart;
+      } else if (activeDateEnd) {
+        matchDate = artDate <= activeDateEnd;
+      }
     }
 
     return matchCategory && matchDistrict && matchDate;
@@ -105,8 +114,10 @@ function App() {
           setSelectedCategory={setTempCategory}
           selectedDistrict={tempDistrict}
           setSelectedDistrict={setTempDistrict}
-          dateRange={tempDate}
-          setDateRange={setTempDate}
+          dateStart={tempDateStart}
+          setDateStart={setTempDateStart}
+          dateEnd={tempDateEnd}
+          setDateEnd={setTempDateEnd}
           applyFilters={applyFilters}
           handleSync={handleSync}
           isSyncing={isSyncing}
