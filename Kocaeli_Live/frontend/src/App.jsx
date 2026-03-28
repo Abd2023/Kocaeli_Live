@@ -9,11 +9,11 @@ function App() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
   const [isDuplicateModalOpen, setIsDuplicateModalOpen] = useState(false);
-  
+
   // Interaction States
   const [showAllNews, setShowAllNews] = useState(false);
   const [hoveredArticleLink, setHoveredArticleLink] = useState(null);
-  
+
   // Pending Sidebar States (Wait for Apply/Filtrele button)
   const [tempCategory, setTempCategory] = useState("Tümü");
   const [tempDistrict, setTempDistrict] = useState("Tüm Kocaeli");
@@ -69,12 +69,12 @@ function App() {
   // Compute Filtered View dynamically based on active filters
   const filteredArticles = articles.filter(article => {
     const matchCategory = activeCategory === "Tümü" || article.category === activeCategory;
-    
+
     // Some basic normalisation for District
     const formattedCat = article.location ? article.location.trim().toLowerCase() : "";
     const formattedSel = activeDistrict.trim().toLowerCase();
     const matchDistrict = activeDistrict === "Tüm Kocaeli" || formattedCat.includes(formattedSel) || formattedSel.includes(formattedCat);
-    
+
     // Date range filtering
     let matchDate = true;
     if ((activeDateStart || activeDateEnd) && article.date) {
@@ -95,7 +95,7 @@ function App() {
 
   return (
     <div className="h-screen w-full flex flex-col font-sans bg-gray-50 overflow-hidden">
-      
+
       {/* Top Navigation Bar - Figma Design */}
       <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6 shrink-0 z-20 shadow-sm">
         <a href="/" className="text-xl font-bold text-[#0066FF] tracking-tight hover:opacity-80 transition-opacity">Kocaeli Live</a>
@@ -106,7 +106,7 @@ function App() {
 
       {/* Main Content Area */}
       <div className="flex flex-1 h-[calc(100vh-64px)] relative">
-        <Sidebar 
+        <Sidebar
           articles={articles}
           filteredArticles={visibleArticles}
           totalFilteredCount={filteredArticles.length}
@@ -126,7 +126,7 @@ function App() {
           setShowAllNews={setShowAllNews}
           setHoveredArticleLink={setHoveredArticleLink}
         />
-        
+
         <div className="flex-1 relative bg-gray-100">
           {isLoading && (
             <div className="absolute inset-0 flex items-center justify-center bg-slate-100/50 backdrop-blur-sm z-50">
@@ -137,10 +137,10 @@ function App() {
         </div>
       </div>
 
-      <DuplicateReportModal 
-        isOpen={isDuplicateModalOpen} 
-        onClose={() => setIsDuplicateModalOpen(false)} 
-        articles={articles} 
+      <DuplicateReportModal
+        isOpen={isDuplicateModalOpen}
+        onClose={() => setIsDuplicateModalOpen(false)}
+        articles={articles}
       />
     </div>
   );
