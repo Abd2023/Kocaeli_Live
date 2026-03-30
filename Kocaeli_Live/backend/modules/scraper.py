@@ -110,7 +110,7 @@ async def scrape_source(session, source_name, url, base_url):
     
     articles = []
     for link in links:
-        if len(articles) >= 3: # Cap at 10 successful, recent articles per site (50 total)
+        if len(articles) >= 8: # Cap at 8 successful, recent articles per source URL
             break
             
         art_html = await fetch_html(session, link)
